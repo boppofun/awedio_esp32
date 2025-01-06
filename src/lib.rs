@@ -5,8 +5,7 @@ use esp_idf_hal as hal;
 
 use awedio::{manager::BackendSource, manager::Manager};
 use hal::delay::TickType;
-use hal::task::thread::ThreadSpawnConfiguration;
-use std::time::Duration;
+use hal::task::thread;
 #[cfg(feature = "report-render-time")]
 use std::time::Instant;
 
@@ -85,13 +84,14 @@ impl Esp32Backend {
         let stack_size = self.stack_size as usize;
         let priority: u8 = self.task_priority.try_into().unwrap();
         let pin_to_core = self.pin_to_core;
-        let orig_spawn_config = ThreadSpawnConfiguration::get().unwrap_or_default();
-        let new_config = ThreadSpawnConfiguration {
+        let orig_spawn_config = thread::ThreadSpawnConfiguration::get().unwrap_or_default();
+        let new_config = thread::ThreadSpawnConfiguration {
             name: Some("AwedioBackend\0".as_bytes()),
             stack_size, // does not do anything
             priority,
             inherit: false,
             pin_to_core,
+            stack_alloc_caps: Default::default(),
         };
         new_config
             .set()
@@ -108,13 +108,14 @@ impl Esp32Backend {
 }
 
 fn audio_task(backend: Esp32Backend, mut backend_source: Box<dyn BackendSource>) {
-    const SAMPLE_SIZE: usize = std::mem::size_of::<i16>();
     let mut driver = backend.driver;
     let channel_count = backend.channel_count as usize;
     let num_frames_per_write = backend.num_frames_per_write;
     let mut buf = vec![0_i16; num_frames_per_write * channel_count];
-    let pause_time = Duration::from_millis(20);
-    let mut stopped = true;
+    const SAMPLE_SIZE: usize = std::mem::size_of::<i16>();
+    assert!(SAMPLE_SIZE == 2);
+    let pause_time = std::time::Duration::from_millis(20);
+    let mut stopped = false;
 
     #[cfg(feature = "report-render-time")]
     let mut render_time_since_report = Duration::ZERO;
