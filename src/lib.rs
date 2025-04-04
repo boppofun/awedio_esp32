@@ -12,6 +12,7 @@ use std::time::Instant;
 /// An ESP32 backend for the I2S peripheral for ESP-IDF.
 pub struct Esp32Backend {
     /// The driver to write sound data to.
+    /// This struct handles enabling the channel so it must not be enabled already.
     pub driver: hal::i2s::I2sDriver<'static, hal::i2s::I2sTx>,
     /// The number of channels. 1 for mono, 2 for stereo...
     pub channel_count: u16,
@@ -28,6 +29,15 @@ pub struct Esp32Backend {
     /// Whether the FreeRTOS task should be pinned to a core and if so what
     /// core.
     pub pin_to_core: Option<hal::cpu::Core>,
+    /// If true, when there is no audio to play, the I2S channel is disabled and
+    /// re-enabled later if audio becomes available to play.
+    /// If false, the channel is enabled during init and never disabled.
+    pub auto_disable_channel: bool,
+    /// A callback that is called before the I2S channel is enabled when the
+    /// Manager/Render goes from having no Sound to play to having a Sound and
+    /// before the channel is disabled when no Sounds are playing.
+    /// This callback is never called if `auto_disable_channel` is false.
+    pub on_channel_enable_change: Option<Box<dyn FnMut(bool) + 'static + Send + Sync>>,
 }
 
 impl Esp32Backend {
@@ -54,6 +64,8 @@ impl Esp32Backend {
             stack_size: 30000,
             task_priority: 19,
             pin_to_core: None,
+            auto_disable_channel: true,
+            on_channel_enable_change: None,
         }
     }
 }
@@ -107,7 +119,7 @@ impl Esp32Backend {
     }
 }
 
-fn audio_task(backend: Esp32Backend, mut backend_source: Box<dyn BackendSource>) {
+fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSource>) {
     let mut driver = backend.driver;
     let channel_count = backend.channel_count as usize;
     let num_frames_per_write = backend.num_frames_per_write;
@@ -115,7 +127,12 @@ fn audio_task(backend: Esp32Backend, mut backend_source: Box<dyn BackendSource>)
     const SAMPLE_SIZE: usize = std::mem::size_of::<i16>();
     assert!(SAMPLE_SIZE == 2);
     let pause_time = std::time::Duration::from_millis(20);
-    let mut stopped = false;
+    let mut stopped = backend.auto_disable_channel;
+    if !stopped {
+        driver
+            .tx_enable()
+            .expect("tx_enable should always succeed. Was the channel already enabled?");
+    }
 
     #[cfg(feature = "report-render-time")]
     let mut render_time_since_report = Duration::ZERO;
@@ -165,7 +182,12 @@ fn audio_task(backend: Esp32Backend, mut backend_source: Box<dyn BackendSource>)
         if have_data {
             if stopped {
                 stopped = false;
-                driver.tx_enable().expect("tx_enable should always succeed");
+                if let Some(on_change) = &mut backend.on_channel_enable_change {
+                    on_change(true);
+                }
+                driver
+                    .tx_enable()
+                    .expect("tx_enable should always succeed. Was the channel already enabled?");
             }
 
             #[cfg(feature = "report-render-time")]
@@ -205,8 +227,11 @@ fn audio_task(backend: Esp32Backend, mut backend_source: Box<dyn BackendSource>)
             break;
         }
         if paused {
-            if !stopped {
+            if !stopped && backend.auto_disable_channel {
                 stopped = true;
+                if let Some(on_change) = &mut backend.on_channel_enable_change {
+                    on_change(false);
+                }
                 driver
                     .tx_disable()
                     .expect("tx_disable should always succeed");
@@ -217,10 +242,14 @@ fn audio_task(backend: Esp32Backend, mut backend_source: Box<dyn BackendSource>)
             continue;
         }
     }
-
-    driver
-        .tx_disable()
-        .expect("tx_disable should always succeed");
+    if backend.auto_disable_channel {
+        if let Some(on_change) = &mut backend.on_channel_enable_change {
+            on_change(false);
+        }
+        driver
+            .tx_disable()
+            .expect("tx_disable should always succeed");
+    }
 }
 
 /// Long enough we should not expect to ever return.
