@@ -1,3 +1,15 @@
+## [0.6.0] - 2025-06-02
+
+### Features
+
+- [**breaking**] Update esp-idf-hal
+- Update for esp-idf v5.4
+- Add auto_disable_channel and on_channel_enable_change callback
+
+### Documentation
+
+- Update github org to boppofun
+
 # Changelog
 
 ## Unreleased
