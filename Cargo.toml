@@ -7,7 +7,7 @@ description = "ESP32 backend for the awedio audio playback library"
 license = "MIT OR Apache-2.0"
 keywords = ["audio", "playback", "backend"]
 categories = ["multimedia::audio", "embedded"]
-repository = "https://github.com/10buttons/awedio_esp32"
+repository = "https://github.com/boppofun/awedio_esp32"
 
 [dependencies]
 esp-idf-hal = { version = "0.45", default-features = false, features = ["native"] }
