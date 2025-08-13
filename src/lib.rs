@@ -150,7 +150,7 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
         let mut paused = false;
         let mut finished = false;
         let mut have_data = true;
-        for i in 0..buf.len() {
+        for (i, buf_sample) in buf.iter_mut().enumerate() {
             let sample = match backend_source
                 .next_sample()
                 .expect("backend source should never return an error")
@@ -177,7 +177,7 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
                 }
             };
 
-            buf[i] = sample;
+            *buf_sample = sample;
         }
         if have_data {
             if stopped {
