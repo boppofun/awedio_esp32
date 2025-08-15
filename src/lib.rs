@@ -135,7 +135,7 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
     }
 
     #[cfg(feature = "report-render-time")]
-    let mut render_time_since_report = Duration::ZERO;
+    let mut render_time_since_report = std::time::Duration::ZERO;
     #[cfg(feature = "report-render-time")]
     let mut samples_rendered_since_report = 0;
     #[cfg(feature = "report-render-time")]
@@ -196,7 +196,7 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
                 let start_of_batch_time = end_start_of_batch.duration_since(start);
                 render_time_since_report += end.duration_since(end_start_of_batch);
                 samples_rendered_since_report += buf.len();
-                if end.duration_since(last_report) > Duration::from_secs(1) {
+                if end.duration_since(last_report) > std::time::Duration::from_secs(1) {
                     let budget_micros = samples_rendered_since_report as f32 * 1_000_000.0
                         / backend.sample_rate as f32
                         / channel_count as f32;
@@ -209,7 +209,7 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
                         render_time_since_report.as_millis(),
                         percent_budget
                     );
-                    render_time_since_report = Duration::ZERO;
+                    render_time_since_report = std::time::Duration::ZERO;
                     samples_rendered_since_report = 0;
                     last_report = end;
                 }
