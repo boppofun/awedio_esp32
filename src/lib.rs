@@ -32,6 +32,11 @@ pub struct Esp32Backend {
     /// If true, when there is no audio to play, the I2S channel is disabled and
     /// re-enabled later if audio becomes available to play.
     /// If false, the channel is enabled during init and never disabled.
+    ///
+    /// Note: When enabled the channel is disabled as soon as no audio is available
+    /// but DMA buffers will likely not have been fully flushed so some audio may
+    /// be cutoff. If not desired you can flush the DMA buffers size of Sample(0)
+    /// before having the sounds return Paused/Finished to the Manager.
     pub auto_disable_channel: bool,
     /// A callback that is called before the I2S channel is enabled when the
     /// Manager/Render goes from having no Sound to play to having a Sound and
@@ -180,16 +185,6 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
             *buf_sample = sample;
         }
         if have_data {
-            if stopped {
-                stopped = false;
-                if let Some(on_change) = &mut backend.on_channel_enable_change {
-                    on_change(true);
-                }
-                driver
-                    .tx_enable()
-                    .expect("tx_enable should always succeed. Was the channel already enabled?");
-            }
-
             #[cfg(feature = "report-render-time")]
             {
                 let end = Instant::now();
@@ -214,13 +209,26 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
                     last_report = end;
                 }
             }
-
             let byte_slice = unsafe {
                 core::slice::from_raw_parts(buf.as_ptr() as *const u8, buf.len() * SAMPLE_SIZE)
             };
-            driver
-                .write_all(byte_slice, BLOCK_TIME.into())
-                .expect("I2sDriver::write_all should succeed");
+            if stopped {
+                stopped = false;
+                if let Some(on_change) = &mut backend.on_channel_enable_change {
+                    on_change(true);
+                }
+                let loaded = driver
+                    .preload_data(byte_slice)
+                    .expect("preload should succeed");
+                assert_eq!(loaded, byte_slice.len());
+                driver
+                    .tx_enable()
+                    .expect("tx_enable should always succeed. Was the channel already enabled?");
+            } else {
+                driver
+                    .write_all(byte_slice, BLOCK_TIME.into())
+                    .expect("I2sDriver::write_all should succeed");
+            }
         }
 
         if finished {
