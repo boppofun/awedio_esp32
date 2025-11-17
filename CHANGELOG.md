@@ -1,3 +1,17 @@
+## [0.7.0] - 2025-11-17
+
+### Features
+
+- Preload samples when resuming audio channel
+
+### Bug Fixes
+
+- Report-render-time: reference Duration correctly
+
+### Refactor
+
+- Use iterator instead of index when filling buffer
+
 ## [0.6.0] - 2025-06-02
 
 ### Features
