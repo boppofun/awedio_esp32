@@ -1,8 +1,11 @@
-## [0.7.0] - 2025-11-17
+## [0.8.0] - 2025-12-14
 
 ### Features
 
 - Preload samples when resuming audio channel
+- [**breaking**] Update awedio to v0.6
+
+## [0.7.0] - 2025-11-17
 
 ### Bug Fixes
 
