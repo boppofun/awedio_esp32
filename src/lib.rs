@@ -103,7 +103,7 @@ impl Esp32Backend {
         let pin_to_core = self.pin_to_core;
         let orig_spawn_config = thread::ThreadSpawnConfiguration::get().unwrap_or_default();
         let new_config = thread::ThreadSpawnConfiguration {
-            name: Some("AwedioBackend\0".as_bytes()),
+            name: Some(c"AwedioBackend"),
             stack_size, // does not do anything
             priority,
             inherit: false,

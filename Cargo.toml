@@ -10,8 +10,8 @@ categories = ["multimedia::audio", "embedded"]
 repository = "https://github.com/boppofun/awedio_esp32"
 
 [dependencies]
-esp-idf-hal = { version = "0.45", default-features = false, features = ["native"] }
-awedio = { version = "0.6", default-features = false}
+esp-idf-hal = { version = "0.46", default-features = false, features = ["native"] }
+awedio = { version = "0.8", default-features = false}
 
 [features]
 report-render-time = []
