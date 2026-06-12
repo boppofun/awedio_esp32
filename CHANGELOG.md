@@ -1,3 +1,13 @@
+## [0.10.0] - 2026-06-12
+
+### Features
+
+- [**breaking**] Update awedio to 0.8 and esp-idf-hal to 0.46
+
+## [0.9.0] - 2026-06-12
+
+Empty release, no change.
+
 ## [0.8.0] - 2025-12-14
 
 ### Features
