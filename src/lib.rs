@@ -130,7 +130,9 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
     let num_frames_per_write = backend.num_frames_per_write;
     let mut buf = vec![0_i16; num_frames_per_write * channel_count];
     const SAMPLE_SIZE: usize = std::mem::size_of::<i16>();
-    assert!(SAMPLE_SIZE == 2);
+    const {
+        assert!(SAMPLE_SIZE == 2);
+    }
     let pause_time = std::time::Duration::from_millis(20);
     let mut stopped = backend.auto_disable_channel;
     if !stopped {
