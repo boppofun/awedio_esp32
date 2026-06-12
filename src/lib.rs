@@ -12,7 +12,8 @@ use std::time::Instant;
 /// An ESP32 backend for the I2S peripheral for ESP-IDF.
 pub struct Esp32Backend {
     /// The driver to write sound data to.
-    /// This struct handles enabling the channel so it must not be enabled already.
+    /// This struct handles enabling the channel so it must not be enabled
+    /// already.
     pub driver: hal::i2s::I2sDriver<'static, hal::i2s::I2sTx>,
     /// The number of channels. 1 for mono, 2 for stereo...
     pub channel_count: u16,
@@ -33,10 +34,11 @@ pub struct Esp32Backend {
     /// re-enabled later if audio becomes available to play.
     /// If false, the channel is enabled during init and never disabled.
     ///
-    /// Note: When enabled the channel is disabled as soon as no audio is available
-    /// but DMA buffers will likely not have been fully flushed so some audio may
-    /// be cutoff. If not desired you can flush the DMA buffers size of Sample(0)
-    /// before having the sounds return Paused/Finished to the Manager.
+    /// Note: When enabled the channel is disabled as soon as no audio is
+    /// available but DMA buffers will likely not have been fully flushed so
+    /// some audio may be cutoff. If not desired you can flush the DMA
+    /// buffers size of Sample(0) before having the sounds return
+    /// Paused/Finished to the Manager.
     pub auto_disable_channel: bool,
     /// A callback that is called before the I2S channel is enabled when the
     /// Manager/Render goes from having no Sound to play to having a Sound and
