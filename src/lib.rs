@@ -38,7 +38,7 @@ pub struct Esp32Backend {
     /// be cutoff. If not desired you can flush the DMA buffers size of Sample(0)
     /// before having the sounds return Paused/Finished to the Manager.
     pub auto_disable_channel: bool,
-    /// A callback that is called before the I2S channel is enabled when the
+    /// A callback that is called after the I2S channel is enabled when the
     /// Manager/Render goes from having no Sound to play to having a Sound and
     /// before the channel is disabled when no Sounds are playing.
     /// This callback is never called if `auto_disable_channel` is false.
@@ -214,9 +214,6 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
             };
             if stopped {
                 stopped = false;
-                if let Some(on_change) = &mut backend.on_channel_enable_change {
-                    on_change(true);
-                }
                 let loaded = driver
                     .preload_data(byte_slice)
                     .expect("preload should succeed");
@@ -224,6 +221,9 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
                 driver
                     .tx_enable()
                     .expect("tx_enable should always succeed. Was the channel already enabled?");
+                if let Some(on_change) = &mut backend.on_channel_enable_change {
+                    on_change(true);
+                }
             } else {
                 driver
                     .write_all(byte_slice, BLOCK_TIME.into())
