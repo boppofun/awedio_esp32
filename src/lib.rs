@@ -94,10 +94,7 @@ impl Esp32Backend {
     pub fn start_with_backend_source(self, mut backend_source: Box<dyn BackendSource>) {
         backend_source
             .set_output_channel_count_and_sample_rate(self.channel_count, self.sample_rate);
-        let awedio::NextSample::MetadataChanged = backend_source
-            .next_sample()
-            .expect("backend_source should never return an error")
-        else {
+        let Some(awedio::Stop::MetadataChanged) = backend_source.next_samples(&mut []).stop else {
             panic!("MetadataChanged expected but not received.");
         };
         let stack_size = self.stack_size as usize;
@@ -156,38 +153,22 @@ fn audio_task(mut backend: Esp32Backend, mut backend_source: Box<dyn BackendSour
         backend_source.on_start_of_batch();
         #[cfg(feature = "report-render-time")]
         let end_start_of_batch = Instant::now();
+        let filled = backend_source.next_samples(&mut buf);
         let mut paused = false;
         let mut finished = false;
-        let mut have_data = true;
-        for (i, buf_sample) in buf.iter_mut().enumerate() {
-            let sample = match backend_source
-                .next_sample()
-                .expect("backend source should never return an error")
-            {
-                awedio::NextSample::Sample(s) => s,
-                awedio::NextSample::MetadataChanged => {
-                    unreachable!("we do not change the metadata of the renderer")
-                }
-                awedio::NextSample::Paused => {
-                    paused = true;
-                    if i == 0 {
-                        have_data = false;
-                        break;
-                    }
-                    0
-                }
-                awedio::NextSample::Finished => {
-                    finished = true;
-                    if i == 0 {
-                        have_data = false;
-                        break;
-                    }
-                    0
-                }
-            };
-
-            *buf_sample = sample;
+        match filled.stop {
+            None => (),
+            Some(awedio::Stop::MetadataChanged) => {
+                unreachable!("we do not change the metadata of the renderer")
+            }
+            Some(awedio::Stop::Paused) => paused = true,
+            Some(awedio::Stop::Finished) => finished = true,
+            Some(awedio::Stop::Error(e)) => {
+                panic!("backend source should never return an error: {e}")
+            }
         }
+        let have_data = filled.written > 0;
+        buf[filled.written..].fill(0);
         if have_data {
             #[cfg(feature = "report-render-time")]
             {
