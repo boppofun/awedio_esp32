@@ -11,7 +11,7 @@ repository = "https://github.com/boppofun/awedio_esp32"
 
 [dependencies]
 esp-idf-hal = { version = "0.46", default-features = false, features = ["native"] }
-awedio = { git = "https://github.com/boppofun/awedio", rev = "352091673acf", default-features = false }
+awedio = { git = "https://github.com/boppofun/awedio", rev = "60c498af321f", default-features = false }
 
 [features]
 report-render-time = []
