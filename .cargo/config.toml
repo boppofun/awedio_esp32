@@ -29,3 +29,9 @@ build-std = ["std", "panic_abort"]
 # Required for older ESP-IDF versions without a realpath implementation.
 # Enabling panic_immediate_abort may remove 100K+ from binary size but panic messages will not be printed.
 #build-std-features = ["panic_immediate_abort"]
+
+# Ignore crate versions published less than 7 days ago when resolving
+# dependencies, so malicious releases have time to be caught and yanked.
+# Requires Cargo 1.100+; older Cargo ignores it.
+[registry]
+global-min-publish-age = "7 days"
